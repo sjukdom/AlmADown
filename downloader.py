@@ -1,7 +1,9 @@
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+import subprocess
 import sys
+import re
 
 
 class MainWindow(QMainWindow):
@@ -14,7 +16,7 @@ class MainWindow(QMainWindow):
       self.download_mode = 'Video'
 
       ### Window configs
-      self.setWindowTitle('YouDownMe')
+      self.setWindowTitle('AlmADown')
       self.setFixedSize(400, 500)
 
       ### Status bar
@@ -68,13 +70,32 @@ class MainWindow(QMainWindow):
 
    def open_file(self):
       file_name = QFileDialog.getOpenFileName(self, 'Open File')
-      if file_name:
+      if file_name[0] != "":
          with open(file_name[0], 'r') as f:
             text = f.read()
             self.text_edit.setText(text)
 
    def download(self):
-      pass
+      media_list = self.text_edit.toPlainText().split()
+      total = len(media_list)
+      for index, media in enumerate(media_list, 1):
+         if self.download_mode == "Video":
+            command = subprocess.run(["youtube-dl", "--quiet", media], capture_output=True)
+            if command.returncode == 1:
+               QMessageBox().about(self, "Error", "The link is not valid")
+            else:
+               self.update_progress_bar(index, total)
+         else:    
+            command = subprocess.run(["youtube-dl", "--quiet", "--extract-audio", "--audio-format", "mp3", media], capture_output=True)
+            if command.returncode == 1:
+               QMessageBox().about(self, "Error", "The link is not valid")
+            else:
+               self.update_progress_bar(index, total)
+      self.statusBar().showMessage("All the media was downloaded")
+
+   def update_progress_bar(self, current, total):
+      percentage = current/total * 100
+      self.progress_bar.setValue(percentage)
 
    def change_download_mode(self, state):
       if state == True:
